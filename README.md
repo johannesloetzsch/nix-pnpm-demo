@@ -7,12 +7,12 @@ npx create-next-app@latest nix-pnpm-example --use-pnpm
 ## Build
 
 ```bash
-nix develop
+nix build
 ```
 
 or
 
 ```bash
-pnpm i
+nix develop
 pnpm run build
 ```
