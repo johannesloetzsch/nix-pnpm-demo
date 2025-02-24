@@ -9,51 +9,38 @@
   let
     system = "x86_64-linux";
     pkgs = import nixpkgs {inherit system;};
-    inherit (pkgs) lib;
 
+    nodejs = pkgs.nodejs_latest;
     pnpm = pkgs.nodePackages_latest.pnpm;
-
-    buildInputsFrontend = with pkgs; [
-      nodejs_latest
-      pnpm
-      python3
+      
+    nativeBuildInputs = [
+      nodejs
+      pnpm.configHook
     ];
-
-  in rec {
+  in {
     packages.${system} = rec {
-      dev = pkgs.mkShell {
-        ## trivial build in a shell
- 
-        buildInputs = buildInputsFrontend;
-	shellHook = ''
-          pnpm i
-          pnpm build
-        '';
-      };
-
       nix-pnpm-example = pkgs.stdenv.mkDerivation (finalAttrs: {
         pname = "nix-pnpm-example";
         version = "0.1.0";
-      
         src = ./.;
-      
-        nativeBuildInputs = with pkgs; [
-          nodejs_latest
-          pnpm.configHook
-        ];
       
         pnpmDeps = pnpm.fetchDeps {
           inherit (finalAttrs) pname version src;
-          hash = "sha256-vHA3FqGqOeEBYpcroIv2FnT0mPuclKp0QGIg8HxjqSA=";
+          hash = "sha256-v4tzpGsLPRQMJB3M0d01VqQcvykj+VUvuliGHnp7tOo=";
         };
 
-	buildPhase = ''
-          pnpm build
-        '';
+	inherit nativeBuildInputs;
 
+        buildPhase = ''
+          runHook preBuild
+            pnpm build
+            #pnpm --filter=nix-pnpm-example-next build
+          runHook postBuild
+        '';
+      
         installPhase = ''
-          mkdir $out
-          cp -r out/* $out/
+          mkdir -p $out/next
+          cp -r apps/next/out/* $out/next/
         '';
       });
 

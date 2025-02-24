@@ -4,6 +4,8 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 npx create-next-app@latest nix-pnpm-example --use-pnpm
 ```
 
+The pnpm-nix-build is done [as documented](https://github.com/NixOS/nixpkgs/blob/master/doc/languages-frameworks/javascript.section.md#pnpm-javascript-pnpm).
+
 ## Build
 
 ```bash
@@ -14,5 +16,6 @@ or
 
 ```bash
 nix develop
+configurePhase
 pnpm run build
 ```
