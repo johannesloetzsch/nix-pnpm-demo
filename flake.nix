@@ -26,7 +26,7 @@
       
         pnpmDeps = pnpm.fetchDeps {
           inherit (finalAttrs) pname version src;
-          hash = "sha256-v4tzpGsLPRQMJB3M0d01VqQcvykj+VUvuliGHnp7tOo=";
+          hash = "sha256-74BDBFO+Ysfy25GA4oTljp60Hu7BRqjRgzT+JMA48DU=";
         };
 
 	inherit nativeBuildInputs;
@@ -39,8 +39,9 @@
         '';
       
         installPhase = ''
-          mkdir -p $out/next
+          mkdir -p $out/next $out/vite
           cp -r apps/next/out/* $out/next/
+          cp -r apps/vite/dist/* $out/vite/
         '';
       });
 
