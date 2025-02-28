@@ -19,14 +19,14 @@
     ];
   in {
     packages.${system} = rec {
-      nix-pnpm-example = pkgs.stdenv.mkDerivation (finalAttrs: {
-        pname = "nix-pnpm-example";
+      nix-pnpm-demo = pkgs.stdenv.mkDerivation (finalAttrs: {
+        pname = "nix-pnpm-demo";
         version = "0.1.0";
         src = ./.;
       
         pnpmDeps = pnpm.fetchDeps {
           inherit (finalAttrs) pname version src;
-          hash = "sha256-74BDBFO+Ysfy25GA4oTljp60Hu7BRqjRgzT+JMA48DU=";
+          hash = "sha256-rkMy7SQuwxC39NDHXyKu7errTIt4+83igrb5rhkCgSM=";
         };
 
 	inherit nativeBuildInputs;
@@ -34,18 +34,19 @@
         buildPhase = ''
           runHook preBuild
             pnpm build
-            #pnpm --filter=nix-pnpm-example-next build
+            #pnpm --filter=nix-pnpm-demo-next build
           runHook postBuild
         '';
       
         installPhase = ''
-          mkdir -p $out/next $out/vite
+          mkdir -p $out/next $out/vite $out/astro
           cp -r apps/next/out/* $out/next/
           cp -r apps/vite/dist/* $out/vite/
+          cp -r apps/astro/dist/* $out/astro/
         '';
       });
 
-      default = nix-pnpm-example;
+      default = nix-pnpm-demo;
     };
   };
 }

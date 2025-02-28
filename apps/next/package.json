@@ -1,5 +1,5 @@
 {
-  "name": "nix-pnpm-example-next",
+  "name": "nix-pnpm-demo-next",
   "version": "0.1.0",
   "private": true,
   "scripts": {
