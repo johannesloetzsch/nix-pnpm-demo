@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   output: 'export',
-  basePath: '/next'
+  basePath: '/nix-pnpm-demo/next'
 };
 
 export default nextConfig;
