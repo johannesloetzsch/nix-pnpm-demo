@@ -19,6 +19,7 @@
     ];
   in {
     packages.${system} = rec {
+      default = nix-pnpm-demo;
       nix-pnpm-demo = pkgs.stdenv.mkDerivation (finalAttrs: {
         pname = "nix-pnpm-demo";
         version = "0.1.0";
@@ -26,7 +27,7 @@
       
         pnpmDeps = pnpm.fetchDeps {
           inherit (finalAttrs) pname version src;
-          hash = "sha256-rkMy7SQuwxC39NDHXyKu7errTIt4+83igrb5rhkCgSM=";
+          hash = "sha256-oLF7IZr0I3+3xZaEx69X7F9Ysf7LauVJrB9Vl075EdI=";
         };
 
 	inherit nativeBuildInputs;
@@ -34,19 +35,19 @@
         buildPhase = ''
           runHook preBuild
             pnpm build
-            #pnpm --filter=nix-pnpm-demo-next build
           runHook postBuild
         '';
       
         installPhase = ''
-          mkdir -p $out/next $out/vite $out/astro
-          cp -r apps/next/out/* $out/next/
-          cp -r apps/vite/dist/* $out/vite/
-          cp -r apps/astro/dist/* $out/astro/
+          mkdir -p $out
+          cp -r apps/vite/dist/* $out/
         '';
       });
+    };
 
-      default = nix-pnpm-demo;
+    templates.default = {
+      path = ./.;
+      description = "Vite + React + TS monorepo with Nix, pnpm, Turbo, shared configs (Biome, TS project refs)";
     };
   };
 }
