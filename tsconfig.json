@@ -2,6 +2,7 @@
   "files": [],
   "references": [
     { "path": "./packages/types" },
-    { "path": "./apps/vite" }
+    { "path": "./apps/vite" },
+    { "path": "./apps/e2e" }
   ]
 }

@@ -2,7 +2,7 @@
   description = "Example pnpm-nix-build";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
   };
 
   outputs = { self, nixpkgs, ... }:
@@ -12,12 +12,29 @@
 
     nodejs = pkgs.nodejs_latest;
     pnpm = pkgs.nodePackages_latest.pnpm;
-      
+
+    # Playwright browsers pinned via nixpkgs. The nixpkgs revision dictates the
+    # usable @playwright/test version: playwright-core hardcodes the browser
+    # revision it expects, and the directory names below encode nixpkgs'
+    # revision. The two must match or the browser is not found.
+    playwrightDriver = pkgs.playwright-driver;
+    playwrightBrowsers = playwrightDriver.browsers.override {
+      withFirefox = false;
+      withWebkit = false;
+    };
+
     nativeBuildInputs = [
       nodejs
       pnpm.configHook
     ];
   in {
+    devShells.${system}.default = pkgs.mkShell {
+      buildInputs = nativeBuildInputs;
+      shellHook = ''
+        export PLAYWRIGHT_BROWSERS_PATH="${playwrightBrowsers}"
+        export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+      '';
+    };
     packages.${system} = rec {
       default = nix-pnpm-demo;
       nix-pnpm-demo = pkgs.stdenv.mkDerivation (finalAttrs: {
@@ -27,7 +44,9 @@
       
         pnpmDeps = pnpm.fetchDeps {
           inherit (finalAttrs) pname version src;
-          hash = "sha256-oLF7IZr0I3+3xZaEx69X7F9Ysf7LauVJrB9Vl075EdI=";
+          # 3 = store is a reproducible tarball (nixpkgs >= 25.05 requires this)
+          fetcherVersion = 3;
+          hash = "sha256-08icnQNaOFpyEJcPc7fXcDCvpem4FBwmzR9e/GZ4DrU=";
         };
 
 	inherit nativeBuildInputs;
