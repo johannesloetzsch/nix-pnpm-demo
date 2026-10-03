@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "pnpm --filter nix-pnpm-demo-vite dev",
     "build": "turbo run build",
+    "typecheck": "pnpm --filter nix-pnpm-demo-vite exec tsc -b --noEmit && pnpm --filter nix-pnpm-demo-e2e exec tsc -b --noEmit",
+    "test": "turbo run test",
     "test:e2e": "pnpm --filter nix-pnpm-demo-e2e test",
     "test:e2e:ui": "pnpm --filter nix-pnpm-demo-e2e exec playwright test --ui",
     "test:e2e:report": "pnpm --filter nix-pnpm-demo-e2e exec playwright show-report"

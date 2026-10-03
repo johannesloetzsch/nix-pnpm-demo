@@ -24,16 +24,20 @@ This will create a reproducible build of the Vite app. The result is available i
 
 ```bash
 nix develop
-configurePhase
+
+pnpm install
 
 pnpm build
 
-cd apps/vite; pnpm dev
+pnpm dev
 ```
 
-You can use `nix develop` and run the `configurePhase` function to get a reproducible development environment.
+Inside this shell, pnpm can be used in the usual way. A plain
+`pnpm install` works directly - the devshell's `pnpm.configHook` already
+provides the pnpm store, so no `configurePhase` call is needed.
 
-Inside this shell, pnpm can be used in the usual way.
+Playwright browsers come from Nix as well, so `pnpm test:e2e` also works
+from this shell without any download.
 
 ### Update dependencies hash
 

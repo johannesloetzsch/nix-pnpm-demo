@@ -26,15 +26,36 @@ and report exactly what is and is not green.
 ## Key commands
 - `pnpm build` - build all packages/apps via Turborepo (root)
 - `pnpm install` - install deps (pnpm workspaces)
+- `pnpm typecheck` - type check both TS projects (vite + e2e)
 - `pnpm --filter nix-pnpm-demo-vite exec tsc -b --noEmit` - type check with project refs
-- `pnpm --filter nix-pnpm-demo-vite dev` - run Vite app dev server
+- `pnpm dev` - run Vite app dev server
+- `pnpm test` - run all test tasks via turbo (e2e; needs the devshell)
 
 ### Gotchas
 
 **`pnpm exec tsc` does NOT work at the root.** `typescript` is not a root
 devDependency, so root `pnpm exec tsc` fails with `Command "tsc" not found`.
-Type check per-app instead:
-`pnpm --filter nix-pnpm-demo-vite exec tsc -b --noEmit`
+Use `pnpm typecheck`, which runs the per-workspace commands. It is
+deliberately sequential (`&&`, not parallel): both `tsc -b` invocations
+reference the composite `packages/types` project and would race on its
+single `tsbuildinfo`.
+
+**Turborepo filters the environment (Strict Mode).** A turbo task only sees
+the env vars listed in `env`/`globalEnv`/`passThroughEnv`. Because
+`PLAYWRIGHT_BROWSERS_PATH` is exported by the devShell, `pnpm test:e2e` (which
+calls Playwright directly) works, while `pnpm test` (via turbo) silently lost it
+- Playwright fell back to `~/.cache/ms-playwright` and reported
+`Executable doesn't exist at .../chromium_headless_shell-1194/...`.
+Fixed by listing it in `globalPassThroughEnv` in `turbo.json`, deliberately
+*pass-through* rather than `globalEnv`: the value is a Nix store path that
+changes on every nixpkgs bump, and hashing it would invalidate every task
+including `build`. When a task behaves differently under turbo than when run
+directly, check this first.
+
+**A failing Playwright run blocks forever locally.** With `reporter: "html"`,
+Playwright auto-serves the report on port 9323 after a failure and does not
+exit, so a red `pnpm test` looks like a hang until you Ctrl+C it. Playwright
+does not do this when `CI` is set. Do not read this as a hung test run.
 
 **Biome cannot run from node_modules on NixOS.** `pnpm exec biome` resolves to
 `@biomejs/cli-linux-x64`, a generic-linux glibc binary that NixOS refuses to run
@@ -127,13 +148,16 @@ process group or it dies with the shell:
 `setsid nohup nix build > /tmp/nixbuild.out 2>&1 < /dev/null &`
 
 ## Verification (run all before declaring work done)
-1. `pnpm --filter nix-pnpm-demo-vite exec tsc -b --noEmit`
-2. `pnpm --filter nix-pnpm-demo-e2e exec tsc -b --noEmit`
-3. `pnpm build` (Turbo)
-4. `pnpm exec biome check .` - **currently impossible on NixOS**, see gotcha above
-5. `nix build`
-6. confirm `apps/vite/dist/index.html` exists and assets are non-empty
-7. `nix develop --command pnpm test:e2e` - needs the devshell, not a plain shell
+1. `pnpm typecheck` (covers both vite and e2e)
+2. `pnpm build` (Turbo)
+3. `pnpm exec biome check .` - **currently impossible on NixOS**, see gotcha above
+4. `nix build`
+5. confirm `apps/vite/dist/index.html` exists and assets are non-empty
+6. `nix develop --command pnpm test:e2e` - needs the devshell, not a plain shell
+
+For changes to dependency files, additionally verify in a clean clone that
+`nix develop --command pnpm install --frozen-lockfile` succeeds - no
+`configurePhase` is needed, the devshell's `pnpm.configHook` provides the store.
 
 Never report a step as passing if it errored or was skipped. If a check cannot
 run, say so explicitly instead of implying success.
@@ -170,27 +194,27 @@ no `PLAYWRIGHT_BROWSERS_PATH` and no browser, so it fails.
 `http://localhost:5173/nix-pnpm-demo/vite/`, so no manual server is needed.
 `reuseExistingServer` is on outside CI.
 
-**Not yet done:** there is no `checks` output in the flake, so e2e does not run
-as part of `nix build` or `nix flake check`. Adding a `checks.e2e` derivation
-(chromium inside the Nix build sandbox may need `/dev/shm` handling) is open.
-CI (`.github/workflows/deploy.yml`) does not run e2e either.
-
 ## Known repo hygiene issues (unfixed, deliberately)
 
-- `packages/types/tsconfig.tsbuildinfo` is **tracked in git**. It is a build
-  artifact and changes on every typecheck, which perturbs the `src = ./.` hash.
-  It should be untracked and gitignored.
-- `apps/vite/eslint.config.js` is dead: ESLint is not a dependency anywhere and
-  the project is Biome-only.
 - `.github/workflows/deploy.yml` is stale: `actions/checkout@v3`,
-  `upload-pages-artifact@v3`, `deploy-pages@v4`. It runs no
-  install/typecheck/lint/test, and `nix flake check` is a no-op because the flake
-  has no `checks` output. GitHub Pages serves at `/nix-pnpm-demo/` but the Vite
-  `base` is `/nix-pnpm-demo/vite`, so deployed assets would 404.
-- `README.md` has a duplicated `## Testing` section, and tells you to run
-  `tsc -b --noEmit` at the root, which does not work (see gotcha above).
+  `upload-pages-artifact@v3`, `deploy-pages@v4`, and no `configure-pages`.
+  It runs no install/typecheck/test. GitHub Pages serves at
+  `/nix-pnpm-demo/` but the Vite `base` is `/nix-pnpm-demo/vite`, so deployed
+  assets would 404 - that needs a decision, not a version bump.
+- `nix flake check` is effectively a no-op: the flake defines no `checks`
+  output, so it only evaluates `packages.default`. Adding a real
+  `checks.typecheck` would make CI assert something.
 - Biome config is still 1.x-schema with a top-level `organizeImports`, which
-  Biome 2 rejects. Removal was requested but not performed yet.
+  Biome 2 rejects. Removal was requested but not performed yet. Note the fix
+  has two independent halves: the schema migration, and making the binary
+  runnable on NixOS (see gotcha above).
+- `devShells.default` pulls in ~1.2 GiB of browsers, of which full
+  `chromium-1194` (~875 MiB) appears unused because the Playwright config is
+  entirely headless and headless runs resolve
+  `chromium_headless_shell-1194`. Trimming to headless-only would cut this to
+  ~467 MiB, but would break `pnpm test:e2e:ui`. Untested.
+- There is no `checks.e2e`, so e2e does not run as part of `nix build` or
+  `nix flake check`. CI does not run e2e either.
 
 <!-- BEGIN:turborepo-agent-rules -->
 
