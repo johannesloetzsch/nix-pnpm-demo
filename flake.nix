@@ -70,6 +70,19 @@
       });
     };
 
+    # Without a `checks` output, `nix flake check` only evaluates
+    # packages.default, so it asserts nothing about type safety. This reuses
+    # the package derivation so the check inherits its pnpmDeps closure.
+    checks.${system}.typecheck = self.packages.${system}.default.overrideAttrs (old: {
+      name = "nix-pnpm-demo-typecheck";
+      doCheck = true;
+      checkPhase = ''
+        runHook preCheck
+        pnpm typecheck
+        runHook postCheck
+      '';
+    });
+
     templates.default = {
       path = ./.;
       description = "Vite + React + TS monorepo with Nix, pnpm, Turbo, shared configs (Biome, TS project refs)";

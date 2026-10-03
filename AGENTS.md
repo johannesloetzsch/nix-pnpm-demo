@@ -220,9 +220,6 @@ no `PLAYWRIGHT_BROWSERS_PATH` and no browser, so it fails.
   It runs no install/typecheck/test. GitHub Pages serves at
   `/nix-pnpm-demo/` but the Vite `base` is `/nix-pnpm-demo/vite`, so deployed
   assets would 404 - that needs a decision, not a version bump.
-- `nix flake check` is effectively a no-op: the flake defines no `checks`
-  output, so it only evaluates `packages.default`. Adding a real
-  `checks.typecheck` would make CI assert something.
 - The browser closure ships only `chromium_headless_shell` and `ffmpeg`.
   `withChromium = false` is safe here because `withChromiumHeadlessShell` is a
   separate flag that defaults to `true`; setting `withChromium = false` does not
