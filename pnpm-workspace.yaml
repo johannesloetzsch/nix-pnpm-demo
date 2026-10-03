@@ -1,3 +1,12 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# NixOS cannot execute the glibc-linked @biomejs/cli-linux-x64 binary
+# (it fails with a NixOS stub-ld loader error). Alias the glibc package
+# name to the musl build so `pnpm lint` works on NixOS and on glibc CI.
+#
+# Keep this version in lockstep with @biomejs/biome in the root
+# package.json: the override is an explicit alias, not a range.
+overrides:
+  "@biomejs/cli-linux-x64": "npm:@biomejs/cli-linux-x64-musl@2.5.15"

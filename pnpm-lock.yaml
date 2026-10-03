@@ -4,12 +4,15 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@biomejs/cli-linux-x64': npm:@biomejs/cli-linux-x64-musl@2.5.15
+
 importers:
 
   .:
     devDependencies:
       '@biomejs/biome':
-        specifier: ^2.5.15
+        specifier: 2.5.15
         version: 2.5.15
       turbo:
         specifier: ^2.11.7
@@ -100,12 +103,6 @@ packages:
 
   '@biomejs/cli-linux-x64-musl@2.5.15':
     resolution: {integrity: sha512-IlxUcyxilVGPsE008x13pWdkTbU3nQpP2i9b5UrbOYj6goBkKsRX1XB7yJLcV+O1H9LBchIIm4adOaVLZBX0ZQ==}
-    engines: {node: '>=14.21.3'}
-    cpu: [x64]
-    os: [linux]
-
-  '@biomejs/cli-linux-x64@2.5.15':
-    resolution: {integrity: sha512-xE4iEW/3LqlYj9GFgGrFsFSH51dEEpUbYWBfeOv0q87WkUDxK2o/HhreSb7qMJqck70RVM6Lg96hgedcAYcOkA==}
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [linux]
@@ -619,7 +616,7 @@ snapshots:
       '@biomejs/cli-darwin-x64': 2.5.15
       '@biomejs/cli-linux-arm64': 2.5.15
       '@biomejs/cli-linux-arm64-musl': 2.5.15
-      '@biomejs/cli-linux-x64': 2.5.15
+      '@biomejs/cli-linux-x64': '@biomejs/cli-linux-x64-musl@2.5.15'
       '@biomejs/cli-linux-x64-musl': 2.5.15
       '@biomejs/cli-win32-arm64': 2.5.15
       '@biomejs/cli-win32-x64': 2.5.15
@@ -637,9 +634,6 @@ snapshots:
     optional: true
 
   '@biomejs/cli-linux-x64-musl@2.5.15':
-    optional: true
-
-  '@biomejs/cli-linux-x64@2.5.15':
     optional: true
 
   '@biomejs/cli-win32-arm64@2.5.15':

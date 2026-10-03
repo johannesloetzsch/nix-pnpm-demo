@@ -57,15 +57,35 @@ Playwright auto-serves the report on port 9323 after a failure and does not
 exit, so a red `pnpm test` looks like a hang until you Ctrl+C it. Playwright
 does not do this when `CI` is set. Do not read this as a hung test run.
 
-**Biome cannot run from node_modules on NixOS.** `pnpm exec biome` resolves to
-`@biomejs/cli-linux-x64`, a generic-linux glibc binary that NixOS refuses to run
-(stub-ld error). The devshell does not provide a `biome` binary. A `stub-ld`
-error means nothing was linted - do not report a clean lint pass.
+**Biome runs via a pnpm override to the musl binary.** NixOS cannot execute
+`@biomejs/cli-linux-x64` (generic-linux glibc, `stub-ld` error), so
+`pnpm-workspace.yaml` aliases that name to `@biomejs/cli-linux-x64-musl`, which
+runs on both NixOS and glibc CI. Use `pnpm lint` / `pnpm lint:fix`.
 
-**Biome 2 config schema.** After upgrading to Biome 2.x, top-level
-`organizeImports` is removed (moves to `assist.actions.source.organizeImports`)
-and `$schema` must be bumped from the 1.9.4 URL. Biome 2 rejects unknown
-top-level keys, so a stale 1.x config is a hard error.
+Two things make this fragile, both worth re-checking when Biome is bumped:
+
+- The override is an explicit **version**, not a range. `@biomejs/biome` is
+  exact-pinned in the root `package.json` for this reason. Move both together or
+  the CLI version will disagree with the wrapper.
+- The override lives in **`pnpm-workspace.yaml`, not `package.json`.** pnpm
+  >= 10.28 no longer reads the `pnpm` field of `package.json` and silently
+  ignores it (it prints a warning). A `pnpm.overrides` block in
+  `package.json` looks correct and does nothing.
+
+**Biome 2 config schema.** Biome 2 sets `additionalProperties: false`, so an
+unknown key is a hard error, not a warning. Changes made: top-level
+`organizeImports` moved to `assist.actions.source.organizeImports` and became the
+bare string `"on"` (no `enabled` key); `files.ignore` became `files.includes`
+with `"**"` plus `!`-negated patterns; `linter.rules.recommended` became
+`linter.rules.preset: "recommended"`; `$schema` bumped to the 2.5.15 URL.
+`javascript.formatter.quoteStyle` is still valid and did *not* move.
+
+**A config reached via `extends` still needs `"root": false`.** The root
+`biome.json` uses `"extends": ["./packages/biome-config/biome.json"]` because no
+workspace package declares `@repo/biome-config`, so the bare npm specifier
+cannot resolve. Biome scans the tree and finds the shared file as a *nested*
+config; without `"root": false` it raises `RootInRoot` ("Found a nested root
+configuration..."). Marking it non-root is the documented fix.
 
 **TypeScript 7 removed `baseUrl`.** `"baseUrl": "."` in a tsconfig now fails
 with TS5102. Use relative paths and tsconfig `references` instead. This bit
@@ -150,7 +170,7 @@ process group or it dies with the shell:
 ## Verification (run all before declaring work done)
 1. `pnpm typecheck` (covers both vite and e2e)
 2. `pnpm build` (Turbo)
-3. `pnpm exec biome check .` - **currently impossible on NixOS**, see gotcha above
+3. `pnpm lint` (Biome; works on NixOS via the musl override)
 4. `nix build`
 5. confirm `apps/vite/dist/index.html` exists and assets are non-empty
 6. `nix develop --command pnpm test:e2e` - needs the devshell, not a plain shell
@@ -204,10 +224,6 @@ no `PLAYWRIGHT_BROWSERS_PATH` and no browser, so it fails.
 - `nix flake check` is effectively a no-op: the flake defines no `checks`
   output, so it only evaluates `packages.default`. Adding a real
   `checks.typecheck` would make CI assert something.
-- Biome config is still 1.x-schema with a top-level `organizeImports`, which
-  Biome 2 rejects. Removal was requested but not performed yet. Note the fix
-  has two independent halves: the schema migration, and making the binary
-  runnable on NixOS (see gotcha above).
 - `devShells.default` pulls in ~1.2 GiB of browsers, of which full
   `chromium-1194` (~875 MiB) appears unused because the Playwright config is
   entirely headless and headless runs resolve
