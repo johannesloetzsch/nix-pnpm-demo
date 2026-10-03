@@ -23,6 +23,62 @@ user reviews and approves before anything is staged, committed, or pushed.
 When work is finished but unverified or partially complete, leave it uncommitted
 and report exactly what is and is not green.
 
+## Working agreement
+
+Complements the hard rules above. Those say what must never happen; this is how
+work actually gets done well here.
+
+### Verify before asserting
+
+**Measure before claiming.** The expensive failure is a confident number or
+conflict claim that was recalled rather than checked - "three branches collide
+on `flake.nix`" was asserted before any merge probe, and was wrong (`flake.nix`
+merges clean; the conflict was `AGENTS.md`). One command settles it. State the
+method, not just the result.
+
+**A test that passes for the wrong reason is worse than none.** An early
+`checks.typecheck` probe broke `apps/vite`, which `buildPhase` already catches
+via `tsc -b`, so it proved nothing about the new check. The real coverage is
+`apps/e2e`, which has no `build` script. Always trace what path a failure
+actually travels through before believing a red or green result.
+
+**Verify the integrated state, not just each part.** Every feature passed its
+own suite, and `pnpm lint` still broke once all four landed together, because a
+hand-written conflict resolution dropped an indent no single branch produced.
+An integration is its own artifact and needs its own verification run. Let the
+project's own tooling fix what it checks - `pnpm lint:fix` over re-hand-editing.
+
+**Resolve conflicts by intent, not by text.** When commits collide on one
+bullet list: drop what is now fixed, keep what is still true. Never "prefer one
+side".
+
+### Collaborating
+
+**One feature per branch, one verified commit per feature.** Bundled commits are
+harder to review and harder to revert.
+
+**Ask rather than decide silently.** Offer concrete options with consequences and
+a recommendation, then follow the answer even when it contradicts your plan.
+Structural choices (merge order, branch topology, scope) are the user's call.
+
+**Interrupt when new information changes the picture.** Being asked questions
+mid-execution is a feature. Do not barrel past a decision point to save a round
+trip, and never infer consent for a history-changing operation from earlier
+consent for something else. "Go" means go - then wait.
+
+**Keep the loop tight.** Report as you go, one logical step per command so any
+failure is attributable: named commands, exit codes, explicit before/after
+tables. Not everything saved for a final summary.
+
+**Keep fact and prediction visibly separate, and correct yourself out loud.**
+When a prediction fails, say so in the next sentence. When an earlier claim of
+yours turns out wrong, retract it explicitly rather than moving on as though it
+was never said.
+
+**Name what is unverified in the summary, not just the passing checks.** GitHub
+Actions has never run here, so green local runs are not evidence of it. Say what
+could not be checked and why.
+
 ## Key commands
 - `pnpm build` - build all packages/apps via Turborepo (root)
 - `pnpm install` - install deps (pnpm workspaces)
@@ -32,6 +88,51 @@ and report exactly what is and is not green.
 - `pnpm test` - run all test tasks via turbo (e2e; needs the devshell)
 
 ### Gotchas
+
+**The devshell installs dependencies itself. There is no phase to add.** A
+fresh checkout has no `node_modules`, and nothing in a devshell creates one:
+`mkShell` sets `phases = [ "buildPhase" ]`, and `pnpm.configHook` is a
+`postConfigureHook` that would abort anyway because `pnpmDeps` is unset
+outside `packages.default`. So `flake.nix`'s `shellHook` runs
+`pnpm install --frozen-lockfile` itself, and CI has an explicit
+`Install dependencies` step so a failure is attributed to installing rather
+than to whichever task happens to run first.
+
+This was not theoretical: CI failed at `Type check` with `pnpm typecheck`
+being the first step that needs `node_modules`. `typescript` is only in
+`apps/vite` and `apps/e2e`, so `tsc` resolves from `node_modules/.bin`.
+Always verify dependency-related changes in a clean worktree
+(`git worktree add`), not just in a warm working tree.
+
+**Offline behaviour is deliberate, and differs between builds and shells.**
+`nix build` and `nix flake check` are hermetic - they use `pnpmDeps`. The
+devshell is not: pnpm resolves against the *user* store
+(`~/.local/share/pnpm/store`), because `pnpm.configHook` never runs there. The
+shellHook therefore installs only when it must:
+
+| Situation | Shell does | Network |
+|---|---|---|
+| Fresh clone or CI checkout (no `node_modules`) | `pnpm install --frozen-lockfile` | only if the pnpm store is cold |
+| Re-enter shell, `pnpm-lock.yaml` unchanged | nothing | no |
+| Branch switch that changes `pnpm-lock.yaml` | `pnpm install --frozen-lockfile` | only for packages the store lacks |
+| Branch switch that leaves the lockfile untouched | nothing | no |
+| `node_modules` deleted | `pnpm install --frozen-lockfile` | only if the pnpm store is cold |
+
+`node_modules` is disposable; the pnpm store is the real cache. With a complete
+lockfile and a warm store pnpm skips resolution and never contacts the
+registry - verified by deleting `node_modules` and pointing
+`npm_config_registry` at an unreachable port, which still installed cleanly. So
+do not describe the devshell as needing network on every entry, and do not
+assume a cold store is fine: a first install on a fresh machine does need it.
+
+Two rules keep this honest. The guard compares lockfile **content** (`cmp`),
+never mtime, because `git checkout` preserves mtimes and an mtime guard keeps
+stale `node_modules` across a branch switch - the reason ccusage dropped one.
+And it does **not** pass `--ignore-scripts`: nixpkgs passes that for sandboxed
+derivation builds, but postinstall scripts perform native builds in a devshell,
+and skipping them yields packages that fail at runtime rather than at install.
+If the guard is ever wrong, `pnpm install --frozen-lockfile` fixes it; the
+guard degrades towards "install again", never "never install".
 
 **`pnpm exec tsc` does NOT work at the root.** `typescript` is not a root
 devDependency, so root `pnpm exec tsc` fails with `Command "tsc" not found`.
@@ -142,7 +243,7 @@ headless shell is used.
 
 ## Nix
 - `nix build` - build Vite app (reproducible)
-- `nix develop` - enter devshell (run `configurePhase` first as per README)
+- `nix develop` - enter devshell (installs deps automatically, see Gotchas)
 - `nix flake init -t .#default` (in template context) - instantiate template
 
 When `package.json` or `pnpm-lock.yaml` changes, update `pnpmDeps.hash` in
@@ -175,9 +276,10 @@ process group or it dies with the shell:
 5. confirm `apps/vite/dist/index.html` exists and assets are non-empty
 6. `nix develop --command pnpm test:e2e` - needs the devshell, not a plain shell
 
-For changes to dependency files, additionally verify in a clean clone that
-`nix develop --command pnpm install --frozen-lockfile` succeeds - no
-`configurePhase` is needed, the devshell's `pnpm.configHook` provides the store.
+For changes to dependency files, additionally verify in a clean worktree
+(`git worktree add`) that `nix develop --command pnpm typecheck` succeeds from
+a checkout with no `node_modules` - that is the condition CI runs in, and the
+one that broke when only a warm working tree was tested.
 
 Never report a step as passing if it errored or was skipped. If a check cannot
 run, say so explicitly instead of implying success.

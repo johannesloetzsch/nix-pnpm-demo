@@ -39,6 +39,24 @@
       shellHook = ''
         export PLAYWRIGHT_BROWSERS_PATH="${playwrightBrowsers}"
         export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+
+        # Nothing in a devshell creates node_modules: mkShell runs only
+        # buildPhase, and pnpm.configHook is a postConfigureHook that would
+        # also abort here because pnpmDeps is unset outside packages.default.
+        # So install dependencies ourselves.
+        #
+        # The guard compares lockfile CONTENT, not mtime, because `git checkout`
+        # preserves mtimes: an mtime guard silently keeps stale node_modules
+        # across a branch switch. cmp costs one 31 KB read and makes an
+        # unchanged lockfile a hard no-op, so re-entering the shell needs no
+        # network at all.
+        #
+        # No --ignore-scripts: nixpkgs passes that for sandboxed derivation
+        # builds, but postinstall scripts perform native builds here and
+        # skipping them yields packages that fail at runtime, not at install.
+        if [ ! -d node_modules ] || ! cmp -s pnpm-lock.yaml node_modules/.pnpm/lock.yaml; then
+          pnpm install --frozen-lockfile
+        fi
       '';
     };
     packages.${system} = rec {

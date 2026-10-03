@@ -25,19 +25,47 @@ This will create a reproducible build of the Vite app. The result is available i
 ```bash
 nix develop
 
-pnpm install
-
 pnpm build
 
 pnpm dev
 ```
 
-Inside this shell, pnpm can be used in the usual way. A plain
-`pnpm install` works directly - the devshell's `pnpm.configHook` already
-provides the pnpm store, so no `configurePhase` call is needed.
+Entering the shell installs dependencies automatically when `node_modules` is
+missing or out of sync with `pnpm-lock.yaml`, so there is no separate
+`pnpm install` step to remember. Inside the shell pnpm works as usual.
 
 Playwright browsers come from Nix as well, so `pnpm test:e2e` also works
 from this shell without any download.
+
+### Working offline
+
+`nix build` and `nix flake check` are hermetic - they install from the
+`pnpmDeps` derivation in `flake.nix`, with no network. **The devshell is not
+hermetic.** It installs against your user pnpm store
+(`~/.local/share/pnpm/store`), because `pkgs.pnpm.configHook` only wires that
+up for a *derivation build* (it is a `postConfigureHook` and requires
+`pnpmDeps`, neither of which a devshell provides). So the devshell needs
+network whenever your pnpm store does not already hold the packages:
+
+| Situation | What the shell does | Network |
+|---|---|---|
+| Fresh clone or CI checkout, no `node_modules` | `pnpm install --frozen-lockfile` | only if the pnpm store is cold |
+| Re-enter the shell, `pnpm-lock.yaml` unchanged | nothing | no |
+| Branch switch that changes `pnpm-lock.yaml` | `pnpm install --frozen-lockfile` | only for packages the store lacks |
+| Branch switch that leaves the lockfile untouched | nothing | no |
+| `node_modules` deleted | `pnpm install --frozen-lockfile` | only if the pnpm store is cold |
+
+`node_modules` is disposable; the pnpm store is the real cache. With a
+complete lockfile and a warm store, pnpm skips resolution entirely and
+installs without contacting the registry at all. So the one case that truly
+requires network is a first install on a machine whose store is empty.
+
+The check compares lockfile *content*, not timestamps, because `git checkout`
+preserves mtimes and a timestamp check would silently keep a stale
+`node_modules` across a branch switch.
+
+If the check ever decides wrongly, `pnpm install --frozen-lockfile` always
+fixes it - or `rm -rf node_modules` and re-enter the shell.
 
 ### Update dependencies hash
 
