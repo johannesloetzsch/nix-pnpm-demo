@@ -109,7 +109,6 @@ pnpm test:e2e
 
 Other useful commands:
 ```bash
-pnpm test:e2e:ui      # Run tests with UI mode
 pnpm test:e2e:report  # View test report
 ```
 

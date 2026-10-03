@@ -199,11 +199,10 @@ run, say so explicitly instead of implying success.
 - Biome only (no ESLint/Prettier). Keep configs centralized; minimal tasks by default.
 - Strict TypeScript (`strict: true`). No astro/next in this template.
 - `pnpm test:e2e` - run Playwright E2E tests (auto-starts the Vite dev server)
-- `pnpm test:e2e:ui` - run Playwright tests with UI
 - `pnpm test:e2e:report` - view Playwright test report
 
 **Playwright browsers ARE provisioned.** The devshell exports
-`PLAYWRIGHT_BROWSERS_PATH="${pkgs.playwright-driver.browsers.override { withFirefox = false; withWebkit = false; }}"`.
+`PLAYWRIGHT_BROWSERS_PATH="${pkgs.playwright-driver.browsers.override { withChromium = false; withFirefox = false; withWebkit = false; }}"`.
 The override keeps the closure small; **ffmpeg must stay enabled** because
 `video: "retain-on-failure"` needs it. Playwright's driver and browser binaries
 must both come from `nix develop` - running `pnpm test:e2e` in a plain shell has
@@ -224,11 +223,13 @@ no `PLAYWRIGHT_BROWSERS_PATH` and no browser, so it fails.
 - `nix flake check` is effectively a no-op: the flake defines no `checks`
   output, so it only evaluates `packages.default`. Adding a real
   `checks.typecheck` would make CI assert something.
-- `devShells.default` pulls in ~1.2 GiB of browsers, of which full
-  `chromium-1194` (~875 MiB) appears unused because the Playwright config is
-  entirely headless and headless runs resolve
-  `chromium_headless_shell-1194`. Trimming to headless-only would cut this to
-  ~467 MiB, but would break `pnpm test:e2e:ui`. Untested.
+- The browser closure ships only `chromium_headless_shell` and `ffmpeg`.
+  `withChromium = false` is safe here because `withChromiumHeadlessShell` is a
+  separate flag that defaults to `true`; setting `withChromium = false` does not
+  remove the headless shell. There is no headed browser, so `playwright test
+  --ui` cannot work and the `test:e2e:ui` script is gone. If headed UI is ever
+  needed, put the full browser back behind a second devshell rather than
+  reinflating the default one.
 - There is no `checks.e2e`, so e2e does not run as part of `nix build` or
   `nix flake check`. CI does not run e2e either.
 

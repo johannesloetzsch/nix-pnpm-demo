@@ -19,6 +19,12 @@
     # revision. The two must match or the browser is not found.
     playwrightDriver = pkgs.playwright-driver;
     playwrightBrowsers = playwrightDriver.browsers.override {
+      # Playwright's own `devices["Desktop Chrome"]` has no `channel`, so
+      # headless runs resolve chromium_headless_shell, not the full browser.
+      # Dropping withChromium removes the unused full browser.
+      # withChromiumHeadlessShell is a SEPARATE flag (defaults to true) - do
+      # not assume dropping chromium drops the headless shell, it does not.
+      withChromium = false;
       withFirefox = false;
       withWebkit = false;
     };
