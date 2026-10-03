@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL = "http://localhost:5173/nix-pnpm-demo/vite/";
+const baseURL = "http://localhost:5173/nix-pnpm-demo/";
 
 export default defineConfig({
   testDir: "./tests",

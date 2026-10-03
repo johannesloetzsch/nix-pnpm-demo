@@ -210,16 +210,15 @@ no `PLAYWRIGHT_BROWSERS_PATH` and no browser, so it fails.
 
 `apps/e2e/playwright.config.ts` uses a `webServer` block that runs
 `pnpm --filter nix-pnpm-demo-vite dev` and waits on
-`http://localhost:5173/nix-pnpm-demo/vite/`, so no manual server is needed.
+`http://localhost:5173/nix-pnpm-demo/`, so no manual server is needed.
 `reuseExistingServer` is on outside CI.
+
+That URL must track the Vite `base` path. The two are only correct together:
+Pages serves the repo at `/nix-pnpm-demo/`, and the build output is uploaded
+from `./result`, so `base` is that path and not a deeper one.
 
 ## Known repo hygiene issues (unfixed, deliberately)
 
-- `.github/workflows/deploy.yml` is stale: `actions/checkout@v3`,
-  `upload-pages-artifact@v3`, `deploy-pages@v4`, and no `configure-pages`.
-  It runs no install/typecheck/test. GitHub Pages serves at
-  `/nix-pnpm-demo/` but the Vite `base` is `/nix-pnpm-demo/vite`, so deployed
-  assets would 404 - that needs a decision, not a version bump.
 - The browser closure ships only `chromium_headless_shell` and `ffmpeg`.
   `withChromium = false` is safe here because `withChromiumHeadlessShell` is a
   separate flag that defaults to `true`; setting `withChromium = false` does not
@@ -228,7 +227,7 @@ no `PLAYWRIGHT_BROWSERS_PATH` and no browser, so it fails.
   needed, put the full browser back behind a second devshell rather than
   reinflating the default one.
 - There is no `checks.e2e`, so e2e does not run as part of `nix build` or
-  `nix flake check`. CI does not run e2e either.
+  `nix flake check`. It does run in CI, via the `verify` job.
 
 <!-- BEGIN:turborepo-agent-rules -->
 

@@ -2,31 +2,49 @@ name: "Deploy"
 on:
   pull_request:
   push:
+
+permissions:
+  contents: read
+
 jobs:
-  buildAndTest:
+  verify:
+    name: Verify
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: cachix/install-nix-action@v22
-    - run: nix flake check
-    - run: nix build 
-    - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: ./result
+      - uses: actions/checkout@v6
+      - uses: cachix/install-nix-action@v31
+      - name: Type check
+        run: nix develop --command pnpm typecheck
+      - name: Lint
+        run: nix develop --command pnpm lint
+      - name: End-to-end tests
+        run: nix develop --command pnpm test
+      - name: Build via Nix
+        run: nix build
+      - name: Flake check
+        run: nix flake check
 
-  deploy:
+  buildAndDeploy:
+    name: Build and deploy
     if: ${{ github.ref == 'refs/heads/main' }}
+    needs: verify
+    runs-on: ubuntu-latest
     permissions:
       pages: write
       id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    needs: buildAndTest
-    runs-on: ubuntu-latest
-    name: Deploy
     steps:
+      - uses: actions/checkout@v6
+      - uses: cachix/install-nix-action@v31
+      - uses: actions/configure-pages@v6
+      - name: Build
+        run: nix build
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: ./result
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

@@ -124,7 +124,7 @@ pnpm test:e2e:report  # View test report
   pinned to an exact version. If you bump the flake's nixpkgs input, re-pin it.
 - Tests are configured with Chromium only by default. Firefox and WebKit are
   excluded from the browser closure to keep it small.
-- Tests run against `http://localhost:5173/nix-pnpm-demo/vite/`, which matches
+- Tests run against `http://localhost:5173/nix-pnpm-demo/`, which matches
   the `base` path in the Vite config. An already-running dev server is reused
   outside CI.
 
