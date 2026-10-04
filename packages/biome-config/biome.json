@@ -14,7 +14,8 @@
       "!**/build",
       "!**/.turbo",
       "!**/node_modules",
-      "!**/.next"
+      "!**/.next",
+      "!**/src/generated"
     ]
   },
   "formatter": {

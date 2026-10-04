@@ -9,6 +9,8 @@
     "test": "turbo run test",
     "test:e2e": "pnpm --filter nix-pnpm-demo-e2e test",
     "test:e2e:report": "pnpm --filter nix-pnpm-demo-e2e exec playwright show-report",
+    "check:links": "node scripts/check-links.mjs",
+    "check:generated": "node scripts/check-generated.mjs",
     "lint": "biome check .",
     "lint:fix": "biome check --write ."
   },

@@ -70,7 +70,7 @@
           inherit (finalAttrs) pname version src;
           # 3 = store is a reproducible tarball (nixpkgs >= 25.05 requires this)
           fetcherVersion = 3;
-          hash = "sha256-gR1T8H+/7m3BUw/l6DWWGIp5DRzIMy8Gi6uhwQ5FBTU=";
+          hash = "sha256-dHtnhHLZgDhMeon5EgqzIND9rY0zK/758m1URnE9FqE=";
         };
 
 	inherit nativeBuildInputs;

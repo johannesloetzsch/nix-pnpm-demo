@@ -1,6 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["**/.env.*local"],
+  "globalDependencies": ["**/.env.*local", "README.md", "docs/pages/*.md"],
   "globalPassThroughEnv": [
     "PLAYWRIGHT_BROWSERS_PATH",
     "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD"

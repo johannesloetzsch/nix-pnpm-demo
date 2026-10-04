@@ -1,158 +1,64 @@
 # nix-pnpm-demo
 
-## [Nix](https://nixos.org/) + [pnpm](https://pnpm.io/) + [Turbo](https://turbo.build/) + [Vite](https://vite.dev/) + [Typescript](https://www.typescriptlang.org/) + [React](https://react.dev/)
+[Nix](https://nixos.org/) · [pnpm](https://pnpm.io/) · [Turborepo](https://turborepo.com/) · [Vite](https://vite.dev/) · [TypeScript](https://www.typescriptlang.org/) · [React](https://react.dev/)
 
-A clean, simple, and maintainable Vite + React + TypeScript monorepo template with Nix for reproducible environments, pnpm workspaces, Turborepo, shared centralized configs (Biome, TypeScript project references), and good monorepo practices. Types-only shared packages where possible.
+A Vite + React + TypeScript monorepo template with reproducible Nix
+environments, pnpm workspaces, Turborepo orchestration, centralised Biome and
+TypeScript configs, and TypeScript project references. Shared packages are
+types-only unless a runtime build is genuinely needed.
 
-## Usage
+[Live Demo](https://johannesloetzsch.github.io/nix-pnpm-demo)
 
-### As a Nix flake template (recommended)
+## Start here
 
 ```bash
 nix flake init -t github:johannesloetzsch/nix-pnpm-demo
-```
-
-### Nix build
-
-```bash
-nix build
-```
-
-This will create a reproducible build of the Vite app. The result is available in `./result`.
-
-### Nix develop
-
-```bash
+cd nix-pnpm-demo
 nix develop
-
-pnpm build
-
 pnpm dev
 ```
 
-Entering the shell installs dependencies automatically when `node_modules` is
-missing or out of sync with `pnpm-lock.yaml`, so there is no separate
-`pnpm install` step to remember. Inside the shell pnpm works as usual.
-
-Playwright browsers come from Nix as well, so `pnpm test:e2e` also works
-from this shell without any download.
-
-### Working offline
-
-`nix build` and `nix flake check` are hermetic - they install from the
-`pnpmDeps` derivation in `flake.nix`, with no network. **The devshell is not
-hermetic.** It installs against your user pnpm store
-(`~/.local/share/pnpm/store`), because `pkgs.pnpm.configHook` only wires that
-up for a *derivation build* (it is a `postConfigureHook` and requires
-`pnpmDeps`, neither of which a devshell provides). So the devshell needs
-network whenever your pnpm store does not already hold the packages:
-
-| Situation | What the shell does | Network |
-|---|---|---|
-| Fresh clone or CI checkout, no `node_modules` | `pnpm install --frozen-lockfile` | only if the pnpm store is cold |
-| Re-enter the shell, `pnpm-lock.yaml` unchanged | nothing | no |
-| Branch switch that changes `pnpm-lock.yaml` | `pnpm install --frozen-lockfile` | only for packages the store lacks |
-| Branch switch that leaves the lockfile untouched | nothing | no |
-| `node_modules` deleted | `pnpm install --frozen-lockfile` | only if the pnpm store is cold |
-
-`node_modules` is disposable; the pnpm store is the real cache. With a
-complete lockfile and a warm store, pnpm skips resolution entirely and
-installs without contacting the registry at all. So the one case that truly
-requires network is a first install on a machine whose store is empty.
-
-The check compares lockfile *content*, not timestamps, because `git checkout`
-preserves mtimes and a timestamp check would silently keep a stale
-`node_modules` across a branch switch.
-
-If the check ever decides wrongly, `pnpm install --frozen-lockfile` always
-fixes it - or `rm -rf node_modules` and re-enter the shell.
-
-### Update dependencies hash
-
-The file `flake.nix` contains a hash over all pnpm-dependencies.
-
-```nix
-pnpmDeps = pnpm.fetchDeps {
-  [...]
-  hash = "sha256-[...]";
-};
-```
-
-Whenever a nodejs-package is added or its version changed (in `package.json` or `pnpm-lock.yaml`), the hash needs to be updated.
-
-## Structure
-
-```
-apps/
-  vite/        # Vite + React + TypeScript app
-  e2e/         # Playwright end-to-end tests
-packages/
-  typescript-config/  # Shared TypeScript configs (bases, project refs)
-  biome-config/       # Shared Biome config
-  types/              # Shared TypeScript types (types-only)
-```
-
-## TypeScript Project References
-
-This template uses TypeScript Project References (`composite: true`, `declaration: true`) for better incremental type-checking, clearer boundaries, and good monorepo practices. All packages/apps are orchestrated from the root `tsconfig.json` solution. Because `typescript` is not a root dependency, type check per workspace rather than at the root:
+The devshell installs dependencies itself, so there is no separate
+`pnpm install` step. Playwright browsers come from Nix too, so the end-to-end
+tests run without downloading anything.
 
 ```bash
-pnpm --filter nix-pnpm-demo-vite exec tsc -b --noEmit
-pnpm --filter nix-pnpm-demo-e2e exec tsc -b --noEmit
+nix build        # reproducible build of the Vite app, output in ./result
+nix flake check  # asserts the package builds and type-checks
 ```
 
-When adding a new package/app:
-- Put it in the correct workspace location (`apps/*` or `packages/*`)
-- Extend from `@repo/typescript-config` bases
-- If it depends on workspace packages, add a project reference to them in its `tsconfig.json` and ensure the dependency exists in `package.json` as `workspace:*`
-- Add it to the root solution `tsconfig.json` references if it needs to be orchestrated at the root
-- Keep shared packages types-only where possible; only add build outputs if you actually need to emit JS
+## Documentation
 
-## Tooling
+| Page | What it covers |
+| --- | --- |
+| [Getting started](./docs/pages/getting-started.md) | The commands you actually run, day one |
+| [The docs browser](./docs/pages/docs-browser.md) | Rendering markdown docs as a site, and picking a parser |
+| [Project structure](./docs/pages/structure.md) | Workspaces, project references, shared configs |
+| [Tooling](./docs/pages/tooling.md) | Biome and Turborepo |
+| [Nix](./docs/pages/nix.md) | Devshell, reproducible build, checks, template output |
+| [Working offline](./docs/pages/offline.md) | When the devshell needs the network, and why |
+| [Testing](./docs/pages/testing.md) | Playwright, browsers from Nix, version lockstep |
+| [Continuous integration](./docs/pages/ci.md) | The verify job and the Pages deploy |
+| [Adopting this template](./docs/pages/adopting.md) | Renaming it, changing the base path, removing parts |
 
-- **Biome**: Centralized linting/formatting with `@repo/biome-config` (convention over configuration).
-- **Turborepo**: Build orchestration with minimal task graph by default.
+## What you get
 
-## Features
+- [x] Reproducible builds and a devshell from a single `flake.nix`
+- [x] A devshell that installs dependencies on entry, so a fresh clone just works
+- [x] pnpm workspaces with a disk-efficient, content-addressed store
+- [x] A `<DocsBrowser />` component that renders your markdown as a site, in two
+      interchangeable parser implementations
+- [x] Turborepo task orchestration with a minimal task graph
+- [x] Centralised Biome and TypeScript configuration, extended rather than copied
+- [x] TypeScript project references with `strict` mode and incremental builds
+- [x] Playwright end-to-end tests with browsers supplied by Nix, not downloaded
+- [x] CI that type-checks, builds, tests, and deploys to GitHub Pages
 
-- Reproducible builds with Nix
-- Fast, disk space efficient workspaces with pnpm
-- Optimized builds with Turborepo caching
-- Vite for fast development
-- TypeScript with strict mode
-- React with functional components
-
-## Testing
-
-End-to-end tests use [Playwright](https://playwright.dev/). Tests live in `apps/e2e/`.
-
-### Run E2E tests
-
-Playwright starts the Vite dev server for you, so a single command is enough:
+## Verify before you trust it
 
 ```bash
-nix develop
-pnpm test:e2e
+pnpm typecheck
+pnpm build
+pnpm lint
+nix build
 ```
-
-Other useful commands:
-```bash
-pnpm test:e2e:report  # View test report
-```
-
-### Notes
-
-- **Use the devshell.** `flake.nix` sets `PLAYWRIGHT_BROWSERS_PATH` to
-  `pkgs.playwright-driver.browsers`, so Chromium is taken from the Nix store
-  rather than downloaded. Outside `nix develop` that variable is unset and the
-  tests cannot find a browser.
-- The nixpkgs revision pins the Playwright version: `pkgs.playwright-driver`
-  names its browser directories by revision, and `playwright-core` hardcodes the
-  revision it expects. `@playwright/test` in `apps/e2e/package.json` is therefore
-  pinned to an exact version. If you bump the flake's nixpkgs input, re-pin it.
-- Tests are configured with Chromium only by default. Firefox and WebKit are
-  excluded from the browser closure to keep it small.
-- Tests run against `http://localhost:5173/nix-pnpm-demo/`, which matches
-  the `base` path in the Vite config. An already-running dev server is reused
-  outside CI.
-

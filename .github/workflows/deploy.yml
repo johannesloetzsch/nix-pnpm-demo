@@ -17,6 +17,10 @@ jobs:
         run: nix develop --command pnpm install --frozen-lockfile
       - name: Type check
         run: nix develop --command pnpm typecheck
+      - name: Check doc links
+        run: nix develop --command pnpm check:links
+      - name: Check generated pages
+        run: nix develop --command pnpm build && nix develop --command pnpm check:generated
       - name: Lint
         run: nix develop --command pnpm lint
       - name: End-to-end tests

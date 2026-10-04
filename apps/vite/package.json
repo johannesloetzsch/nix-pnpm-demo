@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@repo/example-docs-markdown-it": "workspace:*",
+    "@repo/example-docs-marked": "workspace:*",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },

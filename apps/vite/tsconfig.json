@@ -3,6 +3,8 @@
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" },
-    { "path": "../../packages/types" }
+    { "path": "../../packages/types" },
+    { "path": "../../packages/example-docs-markdown-it" },
+    { "path": "../../packages/example-docs-marked" }
   ]
 }

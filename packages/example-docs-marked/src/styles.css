@@ -1,0 +1,325 @@
+/*
+ * This file is intentionally byte-identical in
+ * packages/example-docs-markdown-it and packages/example-docs-marked, so that a
+ * visual difference between the two browsers can only come from the markdown
+ * renderer and never from styling. See docs/pages/tooling.md for the shared-config
+ * conventions this repo follows elsewhere.
+ */
+
+.docs {
+  --docs-bg: light-dark(#ffffff, #16161a);
+  --docs-surface: light-dark(#f6f7f9, #1c1c22);
+  --docs-text: light-dark(#1c1c1e, #e6e6e6);
+  --docs-muted: light-dark(#5b6169, #9aa0a6);
+  --docs-border: light-dark(#e2e5e9, #2a2a32);
+  --docs-accent: light-dark(#5277c3, #7e7eff);
+  --docs-note: light-dark(#5277c3, #7e7eff);
+  --docs-tip: light-dark(#1f7a3d, #5ac37f);
+  --docs-warning: light-dark(#b26a00, #e0a33e);
+  --docs-caution: light-dark(#b3261e, #f2857c);
+
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr);
+  gap: 3rem;
+  align-items: start;
+  min-height: 100vh;
+  background: var(--docs-bg);
+  color: var(--docs-text);
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.docs-sidebar {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  max-height: 100vh;
+  overflow-y: auto;
+  padding: 2rem 1rem 2rem 1.5rem;
+  border-right: 1px solid var(--docs-border);
+}
+
+.docs-sidebar__heading,
+.docs-toc__heading {
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--docs-muted);
+}
+
+.docs-sidebar__list,
+.docs-toc__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.docs-sidebar__link {
+  display: block;
+  width: 100%;
+  padding: 0.3rem 0.6rem;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 0 4px 4px 0;
+  background: none;
+  color: var(--docs-muted);
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.docs-sidebar__link:hover {
+  color: var(--docs-text);
+  background: var(--docs-surface);
+}
+
+.docs-sidebar__link[aria-current="page"] {
+  border-left-color: var(--docs-accent);
+  color: var(--docs-accent);
+  font-weight: 600;
+}
+
+.docs-main {
+  min-width: 0;
+}
+
+.docs-prose {
+  max-width: 48rem;
+  padding: 2.5rem 1.5rem 6rem;
+  overflow-y: auto;
+}
+
+.docs-prose > :first-child {
+  margin-top: 0;
+}
+
+.docs-prose h1,
+.docs-prose h2,
+.docs-prose h3,
+.docs-prose h4 {
+  margin: 2.25rem 0 0.75rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  scroll-margin-top: 1.5rem;
+}
+
+.docs-prose h1 {
+  margin-bottom: 1rem;
+  font-size: 2rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.docs-prose h2 {
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--docs-border);
+  font-size: 1.5rem;
+}
+
+.docs-prose h3 {
+  font-size: 1.175rem;
+}
+
+.docs-prose h4 {
+  font-size: 1rem;
+}
+
+.docs-prose p,
+.docs-prose ul,
+.docs-prose ol,
+.docs-prose table {
+  margin: 0 0 1.1rem;
+}
+
+.docs-prose ul,
+.docs-prose ol {
+  padding-left: 1.4rem;
+}
+
+.docs-prose li + li {
+  margin-top: 0.3rem;
+}
+
+.docs-prose a {
+  color: var(--docs-accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.docs-prose hr {
+  margin: 2.5rem 0;
+  border: 0;
+  border-top: 1px solid var(--docs-border);
+}
+
+.docs-prose code {
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: var(--docs-surface);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.875em;
+}
+
+.docs-prose pre {
+  margin: 0 0 1.25rem;
+  padding: 0.85rem 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--docs-border);
+  border-radius: 6px;
+  background: var(--docs-surface);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.docs-prose pre code {
+  padding: 0;
+  background: none;
+  font-size: inherit;
+}
+
+.docs-prose blockquote {
+  margin: 0 0 1.25rem;
+  padding-left: 1rem;
+  border-left: 3px solid var(--docs-border);
+  color: var(--docs-muted);
+}
+
+.docs-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.925rem;
+}
+
+.docs-prose th,
+.docs-prose td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--docs-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.docs-prose th {
+  font-weight: 600;
+}
+
+/* GitHub-style alerts, produced by the shared enhance() rewrite. */
+.docs-callout {
+  margin: 0 0 1.25rem;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--docs-note);
+  border-radius: 0 6px 6px 0;
+  background: color-mix(in oklab, var(--docs-note) 8%, transparent);
+}
+
+.docs-callout > :last-child {
+  margin-bottom: 0;
+}
+
+.docs-callout__label {
+  margin: 0 0 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--docs-note);
+}
+
+.docs-callout--tip {
+  border-left-color: var(--docs-tip);
+  background: color-mix(in oklab, var(--docs-tip) 8%, transparent);
+}
+
+.docs-callout--tip .docs-callout__label {
+  color: var(--docs-tip);
+}
+
+.docs-callout--warning,
+.docs-callout--caution,
+.docs-callout--important {
+  border-left-color: var(--docs-warning);
+  background: color-mix(in oklab, var(--docs-warning) 8%, transparent);
+}
+
+.docs-callout--warning .docs-callout__label,
+.docs-callout--caution .docs-callout__label,
+.docs-callout--important .docs-callout__label {
+  color: var(--docs-warning);
+}
+
+.docs-callout--caution {
+  border-left-color: var(--docs-caution);
+  background: color-mix(in oklab, var(--docs-caution) 8%, transparent);
+}
+
+.docs-callout--caution .docs-callout__label {
+  color: var(--docs-caution);
+}
+
+.docs-toc {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  max-height: 100vh;
+  overflow-y: auto;
+  padding: 2.5rem 1.5rem 2rem 0;
+}
+
+.docs-toc__item button {
+  display: block;
+  width: 100%;
+  padding: 0.2rem 0;
+  border: 0;
+  background: none;
+  color: var(--docs-muted);
+  font: inherit;
+  font-size: 0.825rem;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+}
+
+.docs-toc__item button:hover {
+  color: var(--docs-accent);
+}
+
+.docs-toc__item--level-3 {
+  padding-left: 0.75rem;
+}
+
+@media (width >= 1200px) {
+  .docs {
+    grid-template-columns: 16rem minmax(0, 1fr) 14rem;
+  }
+}
+
+/*
+ * Below the three-column breakpoint the grid has no third column, so the
+ * table of contents would wrap onto a row of its own. Hide it instead: the
+ * sidebar already carries navigation, and the TOC is a convenience.
+ */
+@media (width < 1200px) {
+  .docs-toc {
+    display: none;
+  }
+}
+
+@media (width < 768px) {
+  .docs {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .docs-sidebar {
+    position: static;
+    max-height: none;
+    border-right: 0;
+    border-bottom: 1px solid var(--docs-border);
+  }
+}

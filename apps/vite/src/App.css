@@ -1,42 +1,163 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+/*
+ * App-level chrome only: the comparison chooser and the variant switcher.
+ * Everything that styles documentation content lives in the example-docs
+ * packages, so that the two packages stay byte-identical in their CSS.
+ */
+
+.chooser {
+  --chooser-bg: light-dark(#ffffff, #16161a);
+  --chooser-surface: light-dark(#f6f7f9, #1c1c22);
+  --chooser-text: light-dark(#1c1c1e, #e6e6e6);
+  --chooser-muted: light-dark(#5b6169, #9aa0a6);
+  --chooser-border: light-dark(#e2e5e9, #2a2a32);
+  --chooser-accent: light-dark(#5277c3, #7e7eff);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  min-height: 100vh;
+  padding: 3rem 1.5rem;
+  background: var(--chooser-bg);
+  color: var(--chooser-text);
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.chooser__eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--chooser-muted);
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.chooser__title {
+  margin: 0 0 0.75rem;
+  font-size: 2.25rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.chooser__lede {
+  max-width: 34rem;
+  margin: 0 0 1.5rem;
+  color: var(--chooser-muted);
+  line-height: 1.6;
 }
 
-.card {
-  padding: 2em;
+.chooser__code {
+  max-width: 34rem;
+  margin: 0 0 1.5rem;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid var(--chooser-border);
+  border-radius: 8px;
+  background: var(--chooser-surface);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  text-align: left;
+  overflow-x: auto;
 }
 
-.read-the-docs {
-  color: #888;
+.chooser__extract {
+  max-width: 34rem;
+  margin: 0 0 2rem;
+  color: var(--chooser-muted);
+  line-height: 1.6;
+}
+
+.chooser__extract code {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.chooser__cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin: 0 0 2rem;
+  padding: 0;
+  list-style: none;
+}
+
+.chooser__card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 17rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--chooser-border);
+  border-radius: 8px;
+  background: var(--chooser-surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.chooser__card:hover {
+  border-color: var(--chooser-accent);
+}
+
+.chooser__card-name {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--chooser-accent);
+}
+
+.chooser__card-facts {
+  font-size: 0.825rem;
+  line-height: 1.45;
+  color: var(--chooser-muted);
+}
+
+.chooser__hint {
+  max-width: 30rem;
+  margin: 0;
+  font-size: 0.825rem;
+  color: var(--chooser-muted);
+}
+
+.switcher {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 10;
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid var(--docs-border, light-dark(#e2e5e9, #2a2a32));
+  border-radius: 8px;
+  background: light-dark(#ffffff, #1c1c22);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+}
+
+.switcher__button {
+  padding: 0.3rem 0.6rem;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: light-dark(#5b6169, #9aa0a6);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.switcher__button:hover {
+  background: light-dark(#f6f7f9, #2a2a32);
+}
+
+.switcher__button[aria-pressed="true"] {
+  background: light-dark(#5277c3, #7e7eff);
+  color: #ffffff;
+}
+
+.switcher__button--muted {
+  font-family: inherit;
 }

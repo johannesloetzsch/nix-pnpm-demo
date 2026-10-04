@@ -42,6 +42,31 @@ via `tsc -b`, so it proved nothing about the new check. The real coverage is
 `apps/e2e`, which has no `build` script. Always trace what path a failure
 actually travels through before believing a red or green result.
 
+**Write the failing test first. Red to green, never green before.** The test
+comes before the implementation, and the implementation is only finished when
+it has turned that test from red to green. A test that was already green the
+moment it was written has not been tested - it has been observed, and it cannot
+distinguish the fix from the absence of a problem.
+
+This is easy to claim falsely, and the claim is worth checking. A cross-page
+link-tagging bug was fixed, and only then were tests written; they passed on
+first run, and the "21 dead links" number came from an ad-hoc script rather
+than from the test. Proving the tests *could* fail meant reverting the fix by
+hand afterwards, which is not the same as having watched them fail first. That
+throwaway script should have been the committed test.
+
+What red-first buys, concretely: the red output is the evidence. "21 untagged
+links" arriving from a failing assertion is trustworthy in a way that a number
+computed by a separate probe is not. It also keeps the test honest, because a
+test that cannot go red is not asserting anything.
+
+**A guard that cannot demonstrate red is not a guard.** If a check passes on the
+first attempt, prove it detects the failure it claims to: break the thing, watch
+it fail, repair it. `pnpm check:links` was written by confirming it found four
+stale `doc/` paths that were really committed. Where red cannot be produced
+locally - a CI-only change - say so in the record rather than implying coverage
+that nobody watched fail.
+
 **Verify the integrated state, not just each part.** Every feature passed its
 own suite, and `pnpm lint` still broke once all four landed together, because a
 hand-written conflict resolution dropped an indent no single branch produced.
@@ -268,6 +293,41 @@ If the process gets killed by a tool timeout, relaunch it detached from the
 process group or it dies with the shell:
 `setsid nohup nix build > /tmp/nixbuild.out 2>&1 < /dev/null &`
 
+**Markdown is rendered at build time, not in the browser.** Each docs package
+runs `scripts/render-pages.mjs` from its `build` script, which parses
+`README.md` and `docs/pages/*.md` and writes `src/generated/pages.ts`. Three
+consequences, all of which look like bugs if you do not know them:
+
+- **The generated file is committed.** `pnpm typecheck` runs before
+  `pnpm build`, and `tsc` has to resolve `./generated/pages`, so the file has
+  to exist in a fresh checkout. It is regenerated on every build and is
+  deterministic, so it cannot drift.
+- **`turbo.json` lists `README.md` and `docs/pages/*.md` in
+  `globalDependencies`.**
+  They live outside the package, so Turbo does not hash them for the package's
+  task; without this a markdown edit replays a cache hit and the docs build
+  ships stale HTML. Turbo hashes file *content*, so `touch` correctly does not
+  invalidate - verify this by actually editing a page.
+- **`src/generated` is excluded from Biome** in
+  `packages/biome-config/biome.json`. Prose code fences contain `${...}`, which
+  trips `noTemplateCurlyInString` in generated JSON strings. TypeScript still
+  checks the file, which is the check that matters.
+
+A Biome `biome-ignore` comment must be a **single line**. A two-line
+explanation is parsed as a second, separate comment, so the suppression binds
+to the explanation instead of the diagnostic and is then reported as
+`suppressions/unused` while the rule still fires. Also note the rule anchors
+differently per rule: `noDangerouslySetInnerHtml` anchors on the JSX attribute
+(a `//` comment inside the tag works), but `a11y/useKeyWithClickEvents`
+anchors on the element itself (use `{/* */}` on the line before the tag, or a
+comment inside the tag is ignored).
+
+**`tsc -b` does not always notice a `lib` change.** The incremental build
+cached its config, so `pnpm typecheck` reported stale errors after
+`"DOM"` was added to `apps/e2e/tsconfig.tests.json`. `tsc -b --noEmit --force`
+cleared it. If a type error persists after a config edit, suspect the cache
+before the code. CI builds fresh, so this only bites locally.
+
 ## Verification (run all before declaring work done)
 1. `pnpm typecheck` (covers both vite and e2e)
 2. `pnpm build` (Turbo)
@@ -275,6 +335,12 @@ process group or it dies with the shell:
 4. `nix build`
 5. confirm `apps/vite/dist/index.html` exists and assets are non-empty
 6. `nix develop --command pnpm test:e2e` - needs the devshell, not a plain shell
+7. `pnpm check:links` - no tracked file references the pre-move `doc/` directory
+8. `pnpm check:generated` - the committed `pages.ts` matches what the generators
+   produce. Run this *after* `pnpm build`, or it compares a stale tree against
+   itself.
+
+CI runs the same list, plus `pnpm test` (Turbo) rather than `pnpm test:e2e`.
 
 For changes to dependency files, additionally verify in a clean worktree
 (`git worktree add`) that `nix develop --command pnpm typecheck` succeeds from
@@ -293,9 +359,51 @@ run, say so explicitly instead of implying success.
 
 ## Structure
 - `apps/vite` - Vite + React + TS
+- `docs/pages/` - documentation sources, rendered into the app (see Gotchas)
+- `docs/issues/` - decision records; not rendered
+- `packages/example-docs-markdown-it` - docs browser using `markdown-it`
+- `packages/example-docs-marked` - docs browser using `marked`
 - `packages/typescript-config` - TS base configs (base/vite/node/package) with project refs
 - `packages/biome-config` - centralized Biome config
 - `packages/types` - shared types
+
+## Docs packages (proof of concept)
+
+`example-docs-markdown-it` and `example-docs-marked` are two complete
+implementations of the same component, differing only in how markdown becomes
+HTML.
+
+This is an early technical proof of concept for wiring a workspace package
+into the template. It is not a finished prototype and a long way from an MVP.
+Both renderers are kept deliberately, so a template user can pick the parser
+that suits them and compare the two page by page. Choosing one and deleting the
+other is a decision for whoever adopts this, not a pending cleanup.
+
+Everything except the renderer is deliberately identical, so that a difference
+in behaviour is attributable to the parser: markdown sources are rendered at
+build time into `src/generated/pages.ts` (there is no `src/content` directory),
+and `src/types.ts`, `src/index.ts` and `src/styles.css` are byte-identical
+between the two. `DocsBrowser.tsx` differs only in its `data-docs-variant`
+attribute.
+
+The comparison, measured rather than assumed:
+
+- Rendered HTML is **identical for all 9 pages** after normalising three
+  serialisation details: `markdown-it-anchor` adds `tabindex="-1"` to
+  anchored headings, `marked` escapes `'` as `&#39;`, and the two differ in
+  whitespace between block elements. Nothing visible to a reader differs.
+- Heading IDs are identical for all 60 headings, because both use
+  `github-slugger` rather than a library-specific slugger.
+- Client bundle barely moves: `267.04 kB` (markdown-it) vs `266.21 kB`
+  (marked), because parsing happens at build time and neither parser ships.
+- What does differ is install cost: `markdown-it` pulls 9 store entries
+  (including `@types/markdown-it@14.2.0`, auto-installed as a
+  `markdown-it-anchor` peer) where `marked` pulls 1.
+
+`apps/e2e/tests/smoke.spec.ts` asserts the equivalence directly: it renders
+every page through both implementations in a browser and requires identical
+normalised HTML and identical heading IDs. If you edit one renderer, that test
+is what tells you whether the implementations are still equivalent.
 
 ## Notes
 - Biome only (no ESLint/Prettier). Keep configs centralized; minimal tasks by default.
